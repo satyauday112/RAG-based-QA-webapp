@@ -1,0 +1,13 @@
+[project]
+name = "frontend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[all]>=0.116.0",
+    "iprogress>=0.4",
+    "ipykernel>=6.29.5",
+    "langchain-community>=0.3.27",
+    "langchain-huggingface>=0.1.2",
+]

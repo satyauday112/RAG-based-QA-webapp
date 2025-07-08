@@ -1,0 +1,25 @@
+[project]
+name = "rag-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "apscheduler>=3.11.0",
+    "faiss-cpu>=1.11.0",
+    "fastapi[all]>=0.116.0",
+    "google>=3.0.0",
+    "google-genai>=1.2.0",
+    "langchain>=0.3.26",
+    "langchain-community>=0.3.27",
+    "langchain-google-genai>=2.1.6",
+    "langchain-huggingface>=0.1.2",
+    "langgraph>=0.5.1",
+    "numpy>=2.2",
+    "uvicorn>=0.35.0",
+    "numba>=0.61.2",
+    "ipykernel>=6.29.5",
+    "pypdf>=5.7.0",
+]
+
+
