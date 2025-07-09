@@ -8,15 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-
 from langchain_community.vectorstores.faiss import FAISS
 from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
 import os
-from numba import njit
 from io import BytesIO
 from langchain_community.document_loaders.parsers import PyPDFParser
 from langchain_core.document_loaders import BaseLoader
@@ -45,7 +42,7 @@ scheduler.start()
 
 gemini = ChatGoogleGenerativeAI(model="models/gemini-2.5-flash")
 # model_name = "sentence-transformers/all-mpnet-base-v2"
-print("Starting HuggingFace")
+print("Loading HuggingFace Embeddings Model")
 embeddings = HuggingFaceEmbeddings(cache_folder='embeddings')
 
 app.add_middleware(
@@ -79,24 +76,16 @@ async def upload(file: UploadFile = File(...)):
     data = await file.read()
     bytes_stream = BytesIO(data)
 
-    pdf = CustomPDFLoader(bytes_stream).load_and_split()
-    # page_contents = []
-    # for page in pdf.pages:
-    #     page_contents.append(page.extract_text())
-
-    # split into chunks
-    # splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    # chunks = splitter.split_text(pdf.load_and_split())
-
-    # # wrap as Documents
-    # docs = [Document(page_content=chunk) for chunk in chunks]
-
-    # generate embeddings
+    try:
+        pdf = CustomPDFLoader(bytes_stream).load_and_split()
     
-    vectorstore = FAISS.from_documents(pdf, embeddings)
+        vectorstore = FAISS.from_documents(pdf, embeddings)
 
-    user_id = str(uuid.uuid4())
-    user_stores[user_id] = {"vectorstore": vectorstore, "last_used": time.time()}
+        user_id = str(uuid.uuid4())
+        user_stores[user_id] = {"vectorstore": vectorstore, "last_used": time.time()}
+
+    except Exception as e:
+        raise HTTPException(status_code=422, detail='Can\'t process document')
 
     return {"user_id": user_id, "chunks": len(pdf)}
 
@@ -113,12 +102,13 @@ async def query_endpoint(payload: Query):
     # perform similarity search using LangChain wrapper
     docs = vectorstore.similarity_search(payload.query, k=5)
     context = "\n\n".join([d.page_content for d in docs])
-
-    # use LLM (Gemini/OpenAI) to generate final answer
-    
     
     prompt = f"Context:\n{context}\n\nQuestion: {payload.query}\nAnswer:"
-    answer = gemini.invoke(prompt)
+
+    try:
+        answer = gemini.invoke(prompt)
+    except Exception as e:
+        raise HTTPException(status_code=444, detail="LLM is not working")
 
     return {"answer": answer.content}
 
@@ -127,5 +117,4 @@ async def serve_spa(full_path: str):
     full = os.path.join("static", full_path)
     if os.path.isfile(full):
         return FileResponse(full)
-    # Fallback to index.html for client-side routing
     return FileResponse("static/index.html")
